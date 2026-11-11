@@ -1,0 +1,8 @@
+.openalex.org
+.semanticscholar.org
+.crossref.org
+.unpaywall.org
+.core.ac.uk
+.jstage.jst.go.jp
+.lens.org
+.arxiv.org

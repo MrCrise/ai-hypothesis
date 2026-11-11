@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rd_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rd_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-metallurgy_rag}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rd_user} -d ${POSTGRES_DB:-metallurgy_rag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    command: "server -s3 -dir=/data"
+    volumes:
+      - s3data:/data
+    networks:
+      - internal_net
+
+  pdf-parser:
+    image: quay.io/docling-project/docling-serve:latest
+    profiles: ["ml"]
+    networks:
+      - internal_net
+
+  llm-server:
+    image: vllm/vllm-openai:latest
+    profiles: ["ml"]
+    command: >
+      --model /models/${LLM_MODEL_NAME:-Qwen3-14B-Instruct}
+      --served-model-name default-llm
+      --max-model-len 32768
+    volumes:
+      - ./models:/models:ro
+    networks:
+      - internal_net
+
+  egress-gateway:
+    build:
+      context: ./services/egress-gateway
+    networks:
+      - internal_net
+      - egress_net
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    env_file:
+      - .env.example
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    networks:
+      - internal_net
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    env_file:
+      - .env.example
+    depends_on:
+      postgres:
+        condition: service_healthy
+      egress-gateway:
+        condition: service_started
+    networks:
+      - internal_net
+
+networks:
+  internal_net:
+    driver: bridge
+    internal: true
+  egress_net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  s3data:
