@@ -218,3 +218,28 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ML / LLM weights & caches
+models/
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.bin
+*.onnx
+hf_cache/
+
+# Local data, Docker volumes & downloaded corpus artifacts
+data/
+volumes/
+pgdata/
+seaweedfs_data/
+*.pdf
+!docs/**/*.pdf
+
+# OS & IDE noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
