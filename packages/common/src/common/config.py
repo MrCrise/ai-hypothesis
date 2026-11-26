@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     reranker_model_name: str = "BAAI/bge-reranker-v2-m3"
 
     pdf_parser_url: str = "http://pdf-parser:5001"
+    parser_http_timeout: float = 60.0
+    parser_task_timeout: float = 600.0
+    parser_poll_interval: float = 2.0
+    parser_min_chars_per_page: int = 50
+    chunk_max_chars: int = 1500
     http_proxy: str | None = None
 
 
