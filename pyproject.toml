@@ -11,6 +11,7 @@ members = [
     "packages/ingestion",
     "services/api",
     "services/orchestrator",
+    "services/ml-inference",
     "eval",
 ]
 
@@ -19,7 +20,26 @@ common = { workspace = true }
 ingestion = { workspace = true }
 api = { workspace = true }
 orchestrator = { workspace = true }
+ml-inference = { workspace = true }
 eval = { workspace = true }
+
+[tool.uv]
+conflicts = [
+  [
+    { extra = "cpu", package = "ml-inference" },
+    { extra = "cu124", package = "ml-inference" },
+  ],
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
 
 [dependency-groups]
 dev = [
@@ -48,3 +68,8 @@ ignore = [
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["services", "packages", "eval"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_configs = true

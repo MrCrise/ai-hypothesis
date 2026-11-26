@@ -16,9 +16,7 @@ async def readiness(response: Response) -> ReadinessResponse:
     pg_health, vec_health = await check_db_health()
     s3_health = await s3_storage.check_health()
 
-    all_up = all(
-        c.status == ComponentStatus.UP for c in (pg_health, vec_health, s3_health)
-    )
+    all_up = all(c.status == ComponentStatus.UP for c in (pg_health, vec_health, s3_health))
     overall = ComponentStatus.UP if all_up else ComponentStatus.DOWN
 
     if overall == ComponentStatus.DOWN:

@@ -39,9 +39,7 @@ class S3Storage:
         self, key: str, data: bytes, content_type: str = "application/pdf"
     ) -> str:
         async with self.session.client(**self._client_kwargs()) as s3:
-            await s3.put_object(
-                Bucket=self.bucket, Key=key, Body=data, ContentType=content_type
-            )
+            await s3.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
         return key
 
     async def download_bytes(self, key: str) -> bytes:
