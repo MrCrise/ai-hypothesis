@@ -24,7 +24,7 @@ services:
       - internal_net
 
   pdf-parser:
-    image: quay.io/docling-project/docling-serve:latest
+    image: quay.io/docling-project/docling-serve:v1.38.2
     profiles: ["ml"]
     networks:
       - internal_net
