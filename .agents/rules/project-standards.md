@@ -19,7 +19,7 @@
 - Все внутренние сервисы разворачиваются в изолированной Docker-сети `internal_net` (`internal: true`).
 - **Единственная точка выхода во внешнюю сеть** — прокси-сервис `egress-gateway` (Squid proxy на порту 3128), подключенный одновременно к `internal_net` и `egress_net`.
 - Доступ разрешен только к доменам из белого списка (`services/egress-gateway/whitelist.txt`: OpenAlex, Semantic Scholar, Crossref, Unpaywall, CORE, J-Stage, Lens, ArXiv).
-- Сервисы инференса (`llm-server`, эмбеддинги, реранкер) должны функционировать на 100% автономно с локально смонтированными весами моделей (`./models:/models:ro`).
+- Сервисы инференса (`llm-server` на порту 8080 для LLM, `ml-inference` на порту 8081 для эмбеддингов и реранкера) должны функционировать на 100% автономно с локально смонтированными весами моделей (`./models:/models:ro`). Веса предварительно загружаются через `scripts/download_models.py` и загружаются в память с `HF_HUB_OFFLINE=1` и `local_files_only=True`.
 
 ### Защита от галлюцинаций и фактологичность (ФТ-16)
 - Ответы чата и доказательная база гипотез **ОБЯЗАНЫ** содержать прямые ссылки на точные идентификаторы фрагментов (`chunk_id`) из базы данных.
@@ -37,10 +37,11 @@
 ### Архитектура библиотек и сервисов
 - `packages/common`:
   - База данных: PostgreSQL 16 с расширением `pgvector`, SQLAlchemy 2.0+ (asyncio), драйвер `asyncpg`.
-  - Модели векторов: размерность 1024 (`Vector(1024)` для `BAAI/bge-m3`).
+  - Модели векторов: размерность 1024 (`Vector(1024)` для `Qwen3-Embedding-0.6B` с MRL-обрезкой и L2-нормализацией).
   - Миграции: Alembic.
   - S3-клиент: `aioboto3` для взаимодействия с SeaweedFS.
   - Схемы данных: Pydantic v2 (`pydantic>=2.10.0`).
+  - Унифицированный клиент инференса: `common.inference` — `InferenceClient` (семафор фоновой нагрузки `llm_bg_max_concurrency` для SLA чата <= 30с, двухшаговый structured output при active thinking, экспоненциальные ретраи) и адаптеры LangChain (`QwenChatModel`, `QwenEmbeddings`).
 - `packages/ingestion`:
   - Внешние коннекторы к научным базам данных (`httpx.AsyncClient` с `tenacity`).
   - Парсинг документов: HTTP-клиент к Docling (`pdf-parser:5001`).
@@ -48,6 +49,13 @@
   - Бэкенд: FastAPI (`fastapi>=0.115.6`), ASGI-сервер `uvicorn`.
 - `services/orchestrator`:
   - Оркестрация графов: `langgraph>=0.2.60`, чекпоинты в БД через `langgraph-checkpoint-postgres>=2.0.10`.
+- `services/ml-inference`:
+  - FastAPI сервис локального инференса на порту 8081 (`transformers>=4.51.0`, `torch>=2.5.0`).
+  - Эмбеддинги: `Qwen3-Embedding-0.6B` (`AutoModel`, `padding_side="left"`, last-token pooling, обрезка до 1024, L2-нормализация).
+  - Реранкер: `Qwen3-Reranker-0.6B` (`AutoModelForCausalLM`, раздельная токенизация тела и суффикса `<think>\n\n</think>\n\n`, `softmax` логитов токенов `yes`/`no`, возврат `relevance_score`).
+  - Динамический микро-батчинг (`BatchingQueueWorker`) через `asyncio.to_thread` и общий `asyncio.Lock` при `ML_INFERENCE_DEVICE=cuda`.
+- `services/llm-server`:
+  - Сервер `llama.cpp` (`ghcr.io/ggml-org/llama.cpp:server-cuda`) на порту 8080 для `Qwen3.8-27B` (GGUF) с флагами `--flash-attn on`, `--jinja`, `--reasoning-format deepseek`, `--no-context-shift`, `--cont-batching`.
 - `services/egress-gateway`:
   - Контейнер Ubuntu Squid с проверкой белого списка (`dstdomain`).
 - `eval`:

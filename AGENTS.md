@@ -5,12 +5,15 @@
 ## Структура репозитория
 
 - `packages/` — библиотеки рабочего пространства (UV workspace):
-  - `common/` — модели базы данных SQLAlchemy (`pgvector`), схемы Pydantic, конфигурация (`pydantic-settings`), клиенты S3/LLM.
+  - `common/` — модели базы данных SQLAlchemy (`pgvector`), схемы Pydantic, конфигурация (`pydantic-settings`), клиенты S3/LLM, асинхронный клиент инференса `InferenceClient` и адаптеры LangChain (`QwenChatModel`, `QwenEmbeddings`).
   - `ingestion/` — парсинг PDF (клиент Docling), коннекторы академических источников, дедупликация и индексация.
 - `services/` — микросервисы системы:
   - `api/` — FastAPI сервис (эндпоинты `/health`, `/api/v1/topics`, `/corpus`, `/chat`, `/hypotheses`, `/reports`).
   - `orchestrator/` — фоновый воркер многостадийного пайплайна генерации гипотез на базе LangGraph.
+  - `ml-inference/` — FastAPI микросервис инференса эмбеддингов (`Qwen3-Embedding-0.6B`) и реранкера (`Qwen3-Reranker-0.6B`) на PyTorch с динамическим микро-батчингом.
   - `egress-gateway/` — Squid proxy шлюз с белым списком доменов для доступа к внешним академическим API.
+- `scripts/` — вспомогательные утилиты:
+  - `download_models.py` — загрузка весов LLM (GGUF) и моделей Hugging Face в каталог `./models` для автономной работы в закрытом контуре.
 - `eval/` — инструменты оценки качества поиска и генерации (Ragas, SciPy).
 - `openspec/` — артефакты Spec-Driven Development (`specs/`, `changes/`, `config.yaml`).
 - `.agents/` — база знаний для агентов:
@@ -26,7 +29,7 @@
 uv sync
 
 # Добавление зависимости в конкретный пакет/сервис
-uv add <package_name> --package <common|ingestion|api|orchestrator|eval>
+uv add <package_name> --package <common|ingestion|api|orchestrator|ml-inference|eval>
 
 # Запуск тестов
 uv run pytest
@@ -40,9 +43,12 @@ uv run mypy packages services
 uv run pip-licenses --summary
 uv run pip-licenses --fail-on="GPL;AGPL"
 
+# Загрузка весов моделей для закрытого контура
+uv run python scripts/download_models.py
+
 # Управление локальным окружением в Docker
 docker compose up --build -d                  # Базовые сервисы (postgres, seaweedfs, api, orchestrator, egress-gateway)
-docker compose --profile ml up --build -d     # Запуск с ML-сервисами (docling/pdf-parser, llm-server)
+docker compose --profile ml up --build -d     # Запуск с ML-сервисами (pdf-parser, llm-server, ml-inference)
 docker compose down
 ```
 
