@@ -88,3 +88,18 @@ def test_pdf_numbered_first_heading_is_section() -> None:
     d.add_text(DocItemLabel.TEXT, "Para one.")
     doc = from_docling(d, META)
     assert doc.title is None and [s.title for s in doc.sections] == ["1. Introduction"]
+
+
+def test_free_standing_figure_caption_counted() -> None:
+    d = DoclingDocument(name="pdf")
+    d.add_heading("Title of paper")
+    d.add_heading("2. Results")
+    d.add_text(DocItemLabel.CAPTION, "Fig. 5. Inclusion size distribution.")
+    d.add_text(DocItemLabel.CAPTION, "Рис. 2. Схема разливки.")
+    d.add_text(DocItemLabel.CAPTION, "Note: values in wt%.")
+    doc = from_docling(d, META)
+    assert [f.text for f in doc.figures] == [
+        "Fig. 5. Inclusion size distribution.",
+        "Рис. 2. Схема разливки.",
+    ]
+    assert len([b for b in doc.blocks if b.kind is BlockKind.CAPTION]) == 3

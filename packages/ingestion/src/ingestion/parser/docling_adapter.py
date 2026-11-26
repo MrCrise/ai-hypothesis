@@ -37,6 +37,8 @@ _SECTION_LIKE = re.compile(
     r"^\s*(\d+|[IVX]+)[.)\s]|^\s*(abstract|introduction|аннотация|введение)\b", re.IGNORECASE
 )
 
+_FIGURE_CAPTION = re.compile(r"^\s*(fig(ure|\.)?|рис(унок|\.)?)\s*\d+", re.IGNORECASE)
+
 _BLOCK_KINDS: dict[DocItemLabel, BlockKind] = {
     DocItemLabel.TEXT: BlockKind.TEXT,
     DocItemLabel.PARAGRAPH: BlockKind.TEXT,
@@ -146,6 +148,10 @@ def from_docling(doc: DoclingDocument, meta: ParseMeta) -> ParsedDocument:
         kind = _BLOCK_KINDS.get(item.label)
         if kind is None:
             continue
+        # Docling не всегда привязывает подпись к картинке: такая подпись приходит отдельным
+        # caption-блоком. Если это подпись рисунка, учитываем её и в figures.
+        if kind is BlockKind.CAPTION and _FIGURE_CAPTION.match(text):
+            result.figures.append(FigureCaption(text=text, section_index=section, page=_page(item)))
         result.blocks.append(
             TextBlock(text=text, kind=kind, section_index=section, page=_page(item))
         )
