@@ -3,7 +3,7 @@
 ## 1. Схема и настройки
 
 - [x] 1.1 Схема `ParsedDocument` (разделы, блоки, таблицы с ячейками, подписи, литература, метаданные) в `common/schemas/parsed.py` и `ParsedChunk`; проверка: `tests` на сериализацию `model_dump(mode="json")` → `model_validate` без потерь
-- [ ] 1.2 Параметры в `Settings` (сделано) и `.env.example` (ждёт ручной правки: файл закрыт для агента): `parser_task_timeout`, `parser_poll_interval`, `parser_min_chars_per_page`, `chunk_max_chars`; проверка: `mypy`, тест значений по умолчанию
+- [x] 1.2 Параметры в `Settings` и `.env.example` (добавлены вручную): `parser_task_timeout`, `parser_poll_interval`, `parser_min_chars_per_page`, `chunk_max_chars`; проверка: `mypy`, тест значений по умолчанию
 
 ## 2. Адаптер Docling → ParsedDocument (ФТ-11)
 
